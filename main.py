@@ -7,12 +7,6 @@ import urllib2
 import time
 import math
 
-import requests
-import requests_toolbelt.adapters.appengine
-# Use the App Engine Requests adapter. This makes sure that Requests uses
-# URLFetch.
-requests_toolbelt.adapters.appengine.monkeypatch()
-
 # sending images
 from PIL import Image
 import multipart
@@ -273,10 +267,15 @@ ASSETPAIRS = {
 
 MAXREQUESTS = 15
 
-def _query(url, header):
-    r = requests.post(url, data=header)
-    if r.status_code == 200:
-        return json.loads(r.text)['result']
+def _query(url, data):
+    headers = {}
+    result = urlfetch.fetch(
+        url=url,
+        payload=data,
+        method=urlfetch.POST,
+        headers=headers)
+    if result.status_code == 200:
+        return json.loads(result.content)['result']
 
 
 class KrakenExchange(object):
@@ -288,8 +287,8 @@ class KrakenExchange(object):
     def __init__(self):
         super(KrakenExchange, self).__init__()
 
-    def query_public(self, type, header=None):
-        return _query(PUBLIC_URLS[type], header)
+    def query_public(self, type, data=None):
+        return _query(PUBLIC_URLS[type], data)
 
     def getServerTime(self):
         serverTime = self.query_public('time')
@@ -303,8 +302,8 @@ class KrakenExchange(object):
         return self.serverSkew
 
     def getTicker(self, pair):
-        header = {'pair': pair} if pair else None
-        r = self.query_public('ticker', header)
+        data = {'pair': pair} if pair else None
+        r = self.query_public('ticker', data)
         if type(r) == ValueError:
             return r.message
         self.ticker = {}
